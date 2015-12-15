@@ -4085,6 +4085,8 @@ def get_genes():
 
 
 def get_patients():
+    assert_dimensions(_patients)
+    replace_question_marks(_patients)
     return _patients
 
 def assert_dimensions(patients):
@@ -4115,8 +4117,3 @@ def replace_question_marks(patients):
 def remove_last_column(matrix):
     for line in matrix:
         line.pop()
-
-
-assert_dimensions(_patients)
-replace_question_marks(_patients)
-remove_last_column(_patients)

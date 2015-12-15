@@ -2,6 +2,10 @@
 import pprint
 import random
 import copy
+
+import itertools
+from collections import Counter
+
 import numpy as np
 import genes
 
@@ -21,24 +25,45 @@ def parse_file_data_size(filename):
     return matrix
 
 
-def main():
-    # matrix = parse_file_data_size('test.txt')
-    matrix = genes.get_patients()
-    partitions, centroids = k_means(matrix, k=2)
-    assert len(partitions) == 2
+def print_precision(labels, partition_number):
+    label, occurrences = max(Counter(labels).iteritems(), key=lambda x: x[1])
+    print 'Partition ', partition_number, "is of type '" + label + "' with", occurrences, 'occurrences.'
+    print 'Precision:', float(occurrences) / len(labels)
 
-    print "partition 1"
-    pprint.pprint(len(partitions[0]))
-    print "partition 2"
-    pprint.pprint(len(partitions[1]))
-    print '%13s' % 'genes =',
-    print_padded_list(genes.get_genes(), 18)
-    print
-    print '%13s' % 'centroid 1 =',
-    print_padded_list(centroids[0], 18)
-    print
-    print '%13s' % 'centroid 2 =',
-    print_padded_list(centroids[1], 18)
+
+def main():
+    matrix = copy.deepcopy(genes.get_patients())
+    genes.remove_last_column(matrix)
+    k = 2
+    partitions, centroids = k_means(matrix, k)
+    assert len(partitions) == k
+    for i, partition in enumerate(partitions):
+        print "PARTITION ", i
+        pprint.pprint(len(partitions[i]))
+        if not partitions[0]:
+            print 'labels 1: empty partition'
+        else:
+            matrix_with_labels = genes.get_patients()
+            labels = get_labels_per_partition(matrix_with_labels, partitions[i])
+            print 'labels 1 =', labels
+            partition_number = i
+            print_precision(labels, partition_number)
+        print ''
+
+
+def get_labels_per_partition(matrix, partition):
+    points_and_labels = {}
+    labels = []
+    for line in matrix:
+        label = line[len(line) - 1]
+        points_and_labels[tuple(line[:-1])] = label
+
+    points = points_and_labels.keys()
+    for point in partition:
+        point = tuple(point)
+        if point in points:
+            labels.append(points_and_labels[point])
+    return labels
 
 
 def print_padded_list(lst, pad):
@@ -98,11 +123,10 @@ def update_centroids(partitions, matrix):
     centroids = []
     points = copy.deepcopy(matrix)
     # Assign random point to empty partitions
-    for partition in partitions:
+    for i, partition in enumerate(partitions):
         if len(partition) == 0:
-            random_point = random.choice(points)
-            partition.append(random_point)
-            points.remove(random_point)
+            partition.append(points[i])
+
     # Calculate centroid (mean) for each partition
     for partition in partitions:
         dimensions_per_point = len(partition[0])
